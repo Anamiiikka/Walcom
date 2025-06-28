@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -28,6 +27,7 @@ interface CartContextType {
   totalAmount: number;
   itemCount: number;
   loading: boolean;
+  placeOrder: (shippingAddress: string) => Promise<{ success: boolean; orderId?: string; error?: string }>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -180,6 +180,55 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const placeOrder = async (shippingAddress: string): Promise<{ success: boolean; orderId?: string; error?: string }> => {
+    if (!user || cartItems.length === 0) {
+      return { success: false, error: "No items in cart or user not logged in" };
+    }
+
+    try {
+      // Calculate total amount
+      const totalAmount = cartItems.reduce((total, item) => {
+        return total + (item.products.price * item.quantity);
+      }, 0);
+
+      // Create order
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          user_id: user.id,
+          total_amount: totalAmount,
+          status: 'processing',
+          shipping_address: shippingAddress
+        })
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      // Create order items
+      const orderItems = cartItems.map(item => ({
+        order_id: orderData.id,
+        product_id: item.product_id,
+        quantity: item.quantity,
+        price: item.products.price
+      }));
+
+      const { error: orderItemsError } = await supabase
+        .from('order_items')
+        .insert(orderItems);
+
+      if (orderItemsError) throw orderItemsError;
+
+      // Clear cart after successful order
+      await clearCart();
+
+      return { success: true, orderId: orderData.id };
+    } catch (error) {
+      console.error('Error placing order:', error);
+      return { success: false, error: "Failed to place order. Please try again." };
+    }
+  };
+
   const totalAmount = cartItems.reduce((total, item) => {
     return total + (item.products.price * item.quantity);
   }, 0);
@@ -195,7 +244,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       clearCart,
       totalAmount,
       itemCount,
-      loading
+      loading,
+      placeOrder
     }}>
       {children}
     </CartContext.Provider>
