@@ -1,9 +1,16 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, ShoppingCart, User, Menu, LogOut, Package, Zap } from 'lucide-react';
+import { Search, ShoppingCart, User, Menu, LogOut, Package, Zap, ClipboardList } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const Header = () => {
   const { user, signOut } = useAuth();
@@ -69,20 +76,28 @@ const Header = () => {
           {/* Right side icons */}
           <div className="flex items-center space-x-6">
             {user ? (
-              <div className="flex items-center space-x-4">
-                <span className="hidden md:block text-sm text-gray-700 font-medium">
-                  Hi, {user.user_metadata?.full_name?.split(' ')[0] || 'User'}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleSignOut}
-                  className="text-gray-600 hover:text-red-500"
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span className="hidden md:inline ml-1">Sign out</span>
-                </Button>
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 font-medium">
+                    <User className="h-5 w-5" />
+                    <div className="hidden md:block text-left">
+                      <div className="text-xs text-gray-500">Hi, {user.user_metadata?.full_name?.split(' ')[0] || 'User'}</div>
+                      <div className="text-sm font-semibold">Account</div>
+                    </div>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => navigate('/my-orders')} className="cursor-pointer">
+                    <ClipboardList className="h-4 w-4 mr-2" />
+                    My Orders
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-red-600">
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
               <Link to="/login" className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 font-medium">
                 <User className="h-5 w-5" />

@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 
 const Cart = () => {
   const { user } = useAuth();
-  const { cartItems, updateQuantity, removeFromCart, clearCart, totalAmount } = useCart();
+  const { cartItems, updateQuantity, removeFromCart, totalAmount, placeOrder } = useCart();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -108,16 +108,34 @@ const Cart = () => {
       return;
     }
 
-    // Simulate order placement
+    // For demo purposes, using a default shipping address
+    const defaultAddress = "123 Main Street, Mumbai, Maharashtra, 400001, India";
+    
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      const orderItems = [...cartItems]; // Create a copy of cart items
-      clearCart();
-      toast({
-        title: "Order placed successfully!",
-        description: "Your order will be delivered within 3-5 business days",
-      });
-      navigate('/order-confirmation', { state: { orderItems: orderItems, totalAmount } });
+      const result = await placeOrder(defaultAddress);
+      
+      if (result.success) {
+        toast({
+          title: "Order placed successfully!",
+          description: "Your order will be delivered within 3-5 business days",
+        });
+        navigate('/order-confirmation', { 
+          state: { 
+            orderId: result.orderId,
+            totalAmount,
+            orderItems: cartItems.map(item => ({
+              ...item,
+              products: item.products
+            }))
+          } 
+        });
+      } else {
+        toast({
+          title: "Order failed",
+          description: result.error || "Please try again later",
+          variant: "destructive"
+        });
+      }
     } catch (error) {
       toast({
         title: "Order failed",
@@ -235,12 +253,10 @@ const Cart = () => {
               </div>
               
               <Button 
-            
-                    onClick={handleCheckout}
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                    size="lg"
-                  >
-              
+                onClick={handleCheckout}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+                size="lg"
+              >
                 Proceed to Checkout
               </Button>
             </div>
